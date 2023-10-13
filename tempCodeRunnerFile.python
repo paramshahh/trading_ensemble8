@@ -1,0 +1,88 @@
+import requests
+import pandas as pd
+from datetime import datetime
+import plotly.graph_objs as go
+
+# Your API key
+key = 'YOUR_API_KEY'
+
+# Fetch 13-day SMA data
+url_13 = f'https://www.alphavantage.co/query?function=SMA&symbol=IBM&interval=weekly&time_period=13&series_type=close&apikey={key}'
+response_13 = requests.get(url_13)
+data_13 = response_13.json()
+sma_data_13 = data_13['Technical Analysis: SMA']
+
+sma_df_13 = pd.DataFrame(sma_data_13).T
+sma_df_13.index = pd.to_datetime(sma_df_13.index)
+sma_df_13 = sma_df_13.sort_index()
+
+# Fetch 8-day SMA data
+url_8 = f'https://www.alphavantage.co/query?function=SMA&symbol=IBM&interval=weekly&time_period=8&series_type=close&apikey={key}'
+response_8 = requests.get(url_8)
+data_8 = response_8.json()
+sma_data_8 = data_8['Technical Analysis: SMA']
+
+sma_df_8 = pd.DataFrame(sma_data_8).T
+sma_df_8.index = pd.to_datetime(sma_df_8.index)
+sma_df_8 = sma_df_8.sort_index()
+
+end_date = datetime.now()
+start_date = end_date - pd.DateOffset(months=15)
+sma_df_13 = sma_df_13[(sma_df_13.index >= start_date) & (sma_df_13.index <= end_date)]
+sma_df_8 = sma_df_8[(sma_df_8.index >= start_date) & (sma_df_8.index <= end_date)]
+
+print("13-day SMA Data for the Past 4 Months:")
+print(sma_df_13)
+
+print("\n8-day SMA Data for the Past 4 Months:")
+print(sma_df_8)
+
+
+import pandas as pd
+from datetime import datetime
+import plotly.graph_objs as go
+import plotly.offline as pyo
+
+
+trace_8 = go.Scatter(x=sma_df_8.index, y=sma_df_8['SMA'], mode='lines', name='8-day SMA', line=dict(color='blue'))
+trace_13 = go.Scatter(x=sma_df_13.index, y=sma_df_13['SMA'], mode='lines', name='13-day SMA', line=dict(color='red'))
+
+# Create a trace for the actual stock data
+trace_stock = go.Scatter(x=stock_df.index, y=stock_df['4. close'], mode='lines', name='Actual Stock', line=dict(color='green'))
+
+layout = go.Layout(
+    title='Stock Data with 8-day and 13-day SMA',
+    xaxis=dict(title='Date'),
+    yaxis=dict(title='Price'),
+    annotations=[]
+)
+
+crossover_annotations = []
+for point in crossover_points:
+    if point[1] == 'Buy Signal':
+        color = 'green'
+    else:
+        color = 'red'
+    
+    annotation = dict(
+        x=point[0],
+        y=point[2],
+        xref='x',
+        yref='y',
+        text=point[1],
+        showarrow=True,
+        arrowhead=5,
+        ax=0,
+        ay=-30,
+        bgcolor=color,
+    )
+    crossover_annotations.append(annotation)
+
+# Add the crossover annotations to the layout
+layout['annotations'] = crossover_annotations
+
+# Create a figure
+fig = go.Figure(data=[trace_8, trace_13, trace_stock], layout=layout)
+
+# Save the figure as an HTML file
+pyo.plot(fig, filename='stock_plot.html')
